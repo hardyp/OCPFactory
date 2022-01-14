@@ -177,13 +177,26 @@ CLASS ZCL_OCP_FACTORY IMPLEMENTATION.
     "If no approriate subclass has been found, then find the SUPERCLASS - default (fallback) implementation
     IF co_object IS NOT BOUND.
       LOOP AT implementing_class_list ASSIGNING <implementing_class> WHERE refclsname EQ converted_interface_name.
-        IF it_constructor_parameters IS NOT SUPPLIED.
-          CREATE OBJECT co_object TYPE (<implementing_class>-clsname).
-        ELSE.
-          CREATE OBJECT co_object TYPE (<implementing_class>-clsname)
-          PARAMETER-TABLE it_constructor_parameters.
-        ENDIF.
-        RETURN.
+        TRY.
+            CALL METHOD (<implementing_class>-clsname)=>(is_the_right_class_type_given)
+              PARAMETER-TABLE dynamic_parameters.
+
+            IF this_is_the_class_we_want = abap_true.
+              IF it_constructor_parameters IS NOT SUPPLIED.
+                CREATE OBJECT co_object TYPE (<implementing_class>-clsname).
+              ELSE.
+                CREATE OBJECT co_object TYPE (<implementing_class>-clsname)
+                PARAMETER-TABLE it_constructor_parameters.
+              ENDIF.
+              RETURN.
+            ENDIF.
+
+          CATCH cx_sy_dyn_call_illegal_method.
+            zcl_dbc=>require(
+            that             = |{ 'Interface'(001) } { interface_passed_in } | &&
+                               |{ 'does not implement ZIF_CREATED_VIA_OCP_FACTORY'(003) }|
+            which_is_true_if = abap_false ).
+        ENDTRY.
       ENDLOOP.
     ENDIF.
 
