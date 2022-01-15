@@ -200,6 +200,19 @@ CLASS ZCL_OCP_FACTORY IMPLEMENTATION.
       ENDLOOP.
     ENDIF.
 
+    "If no approriate subclass has been found, then find the SUPERCLASS - default (fallback) implementation
+    IF co_object IS NOT BOUND.
+      LOOP AT implementing_class_list ASSIGNING <implementing_class> WHERE refclsname EQ converted_interface_name.
+        IF it_constructor_parameters IS NOT SUPPLIED.
+          CREATE OBJECT co_object TYPE (<implementing_class>-clsname).
+        ELSE.
+          CREATE OBJECT co_object TYPE (<implementing_class>-clsname)
+          PARAMETER-TABLE it_constructor_parameters.
+        ENDIF.
+        RETURN.
+      ENDLOOP.
+    ENDIF.
+
     zcl_dbc=>require(
     that             = |{ 'Interface'(001) } { interface_passed_in } { 'needs a Default Class'(002) }|
     which_is_true_if = xsdbool( co_object IS BOUND ) ).
